@@ -26,13 +26,13 @@ import {
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { io } from 'socket.io-client';
-import axios from 'axios';
+import api from '../../api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import AIPanel from './AIPanel';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+// API and Socket URLs come from environment via api and REACT_APP_SOCKET_URL
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || window.location.origin;
 
 const Editor = () => {
   const { id } = useParams();
@@ -67,7 +67,7 @@ const Editor = () => {
 
   const fetchDocument = async () => {
     try {
-      const response = await axios.get(`${API_URL}/documents/${id}`);
+  const response = await api.get(`/api/documents/${id}`);
       const doc = response.data.document;
       setDocument(doc);
       setContent(doc.content || '');
@@ -169,7 +169,7 @@ const Editor = () => {
 
     setSaving(true);
     try {
-      await axios.put(`${API_URL}/documents/${id}`, {
+      await api.put(`/api/documents/${id}`, {
         title,
         content,
       });
@@ -194,7 +194,7 @@ const Editor = () => {
   const handleTitleChange = async (newTitle) => {
     setTitle(newTitle);
     try {
-      await axios.put(`${API_URL}/documents/${id}`, { title: newTitle });
+  await api.put(`/api/documents/${id}`, { title: newTitle });
     } catch (error) {
       console.error('Error updating title:', error);
     }

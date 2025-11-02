@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
@@ -12,10 +12,9 @@ export const useAuth = () => {
   return context;
 };
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
-axios.defaults.baseURL = API_URL;
-axios.defaults.withCredentials = true;
+// api instance already configured to use REACT_APP_API_URL and withCredentials
+// keep backward compatibility by referencing api
+const axiosInstance = api;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -24,14 +23,14 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
     checkAuth();
   }, [token]);
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get('/auth/me');
+  const response = await axiosInstance.get('/auth/me');
       const user = response.data.user;
       // Ensure both id and _id are available for compatibility
       const userWithId = { ...user, _id: user.id || user._id, id: user.id || user._id };
@@ -47,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/auth/login', { email, password });
+  const response = await axiosInstance.post('/auth/login', { email, password });
       const { user, token } = response.data;
       // Ensure both id and _id are available for compatibility
       const userWithId = { ...user, _id: user.id || user._id, id: user.id || user._id };
@@ -66,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const response = await axios.post('/auth/register', {
+  const response = await axiosInstance.post('/auth/register', {
         username,
         email,
         password,
@@ -89,7 +88,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/auth/logout');
+  await axiosInstance.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

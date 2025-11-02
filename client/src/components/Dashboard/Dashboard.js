@@ -28,10 +28,10 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+import api from '../../api';
 import { toast } from 'react-toastify';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// use centralized api instance
 
 const Dashboard = () => {
   const [documents, setDocuments] = useState([]);
@@ -48,7 +48,7 @@ const Dashboard = () => {
 
   const fetchDocuments = async () => {
     try {
-      const response = await axios.get(`${API_URL}/documents`);
+  const response = await api.get('/api/documents');
       setDocuments(response.data.documents || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -65,7 +65,7 @@ const Dashboard = () => {
     }
 
     try {
-      const response = await axios.post(`${API_URL}/documents`, {
+      const response = await api.post('/api/documents', {
         title: newDocTitle,
       });
       toast.success('Document created!');
@@ -79,7 +79,7 @@ const Dashboard = () => {
 
   const handleDeleteDocument = async (documentId) => {
     try {
-      await axios.delete(`${API_URL}/documents/${documentId}`);
+  await api.delete(`/api/documents/${documentId}`);
       toast.success('Document deleted');
       setDeleteDialog(null);
       fetchDocuments();
@@ -90,7 +90,7 @@ const Dashboard = () => {
 
   const handleShareDocument = async (documentId) => {
     try {
-      const response = await axios.post(`${API_URL}/documents/${documentId}/share`);
+  const response = await api.post(`/api/documents/${documentId}/share`);
       const shareLink = response.data.shareLink;
       await navigator.clipboard.writeText(shareLink);
       toast.success('Share link copied to clipboard!');

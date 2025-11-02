@@ -23,11 +23,10 @@ import {
   AutoAwesome as CompleteIcon,
   Lightbulb as SuggestionIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../../api';
 import { toast } from 'react-toastify';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
+// Using centralized api instance; REACT_APP_API_URL controls base URL in production
 const AIPanel = ({ open, onClose, selectedText, fullText }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -52,7 +51,7 @@ const AIPanel = ({ open, onClose, selectedText, fullText }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/ai/grammar-check`, {
+      const response = await api.post('/api/ai/grammar-check', {
         text: text.substring(0, 10000),
       });
       setResults({ ...results, grammar: response.data.suggestions });
@@ -73,7 +72,7 @@ const AIPanel = ({ open, onClose, selectedText, fullText }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/ai/enhance`, {
+      const response = await api.post('/api/ai/enhance', {
         text: text.substring(0, 10000),
       });
       setResults({ ...results, enhance: response.data.enhancedText });
@@ -94,7 +93,7 @@ const AIPanel = ({ open, onClose, selectedText, fullText }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/ai/summarize`, {
+      const response = await api.post('/api/ai/summarize', {
         text: text.substring(0, 50000),
       });
       setResults({ ...results, summarize: response.data.summary });
@@ -115,7 +114,7 @@ const AIPanel = ({ open, onClose, selectedText, fullText }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/ai/complete`, {
+      const response = await api.post('/api/ai/complete', {
         text: text.substring(0, 5000),
         context: fullText.substring(0, 5000),
       });
@@ -137,7 +136,7 @@ const AIPanel = ({ open, onClose, selectedText, fullText }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/ai/suggestions`, {
+      const response = await api.post('/api/ai/suggestions', {
         text: text.substring(0, 10000),
         context: fullText.substring(0, 5000),
       });
