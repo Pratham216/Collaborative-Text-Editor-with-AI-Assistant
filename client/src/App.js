@@ -11,6 +11,7 @@ import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import Dashboard from './components/Dashboard/Dashboard';
 import Editor from './components/Editor/Editor';
+import ShareEditor from './components/Share/ShareEditor';
 
 const theme = createTheme({
   palette: {
@@ -48,6 +49,8 @@ function App() {
                 </PrivateRoute>
               }
             />
+            {/* Public share editor/viewer (no auth) */}
+            <Route path="/documents/share/:shareLink" element={<ShareEditor />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Router>

@@ -7,7 +7,77 @@ const checkDocumentAccess = require('../middleware/documentAccess');
 const { apiLimiter } = require('../middleware/rateLimiter');
 const { sanitizeInput } = require('../middleware/validate');
 
-// Apply authentication to all routes
+// Public route for shared documents (no auth required)
+// Example: GET /api/documents/share/:shareLink
+router.get('/share/:shareLink', async (req, res) => {
+  try {
+    const { shareLink } = req.params;
+
+    const document = await Document.findOne({ shareLink });
+
+    if (!document) {
+      return res.status(404).json({ message: 'Shared document not found' });
+    }
+
+    // Check expiry
+    if (document.shareLinkExpiry && document.shareLinkExpiry < Date.now()) {
+      return res.status(410).json({ message: 'Share link has expired' });
+    }
+
+    // Only return safe/read-only fields for anonymous viewers
+    const publicDoc = {
+      _id: document._id,
+      title: document.title,
+      content: document.content,
+      lastSaved: document.lastSaved,
+      version: document.version,
+      createdAt: document.createdAt,
+      updatedAt: document.updatedAt,
+    };
+
+    return res.json({ document: publicDoc });
+  } catch (error) {
+    console.error('Public share fetch error:', error);
+    return res.status(500).json({ message: 'Server error fetching shared document' });
+  }
+});
+
+// Public update route for shared documents (allows anonymous edits via share link)
+// Example: PUT /api/documents/share/:shareLink
+router.put('/share/:shareLink', async (req, res) => {
+  try {
+    const { shareLink } = req.params;
+    const { title, content } = req.body;
+
+    const document = await Document.findOne({ shareLink });
+
+    if (!document) {
+      return res.status(404).json({ message: 'Shared document not found' });
+    }
+
+    // Check expiry
+    if (document.shareLinkExpiry && document.shareLinkExpiry < Date.now()) {
+      return res.status(410).json({ message: 'Share link has expired' });
+    }
+
+    // Update allowed: treat shared link as editor access
+    if (title !== undefined) document.title = title;
+    if (content !== undefined) {
+      document.content = content;
+      document.lastSaved = new Date();
+      document.version += 1;
+    }
+
+    await document.save();
+
+    return res.json({ document });
+  } catch (error) {
+    console.error('Public share update error:', error);
+    return res.status(500).json({ message: 'Server error updating shared document' });
+  }
+});
+
+// Apply authentication to all remaining routes
 router.use(protect);
 router.use(apiLimiter);
 router.use(sanitizeInput);

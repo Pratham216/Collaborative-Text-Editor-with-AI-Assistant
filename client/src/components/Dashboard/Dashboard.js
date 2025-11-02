@@ -25,7 +25,6 @@ import {
   Logout as LogoutIcon,
   Delete as DeleteIcon,
   Share as ShareIcon,
-  Edit as EditIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api';

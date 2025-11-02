@@ -4,27 +4,57 @@ const Document = require('../models/Document');
 
 const activeUsers = new Map(); // documentId -> Set of userIds
 const userSockets = new Map(); // userId -> Set of socketIds
+const userNames = new Map(); // userId -> username (for authenticated users and guests)
 
 module.exports = (io) => {
   // Authentication middleware for socket connections
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token || socket.handshake.headers.token;
+      const shareLink = socket.handshake.auth.shareLink || socket.handshake.headers['x-share-link'];
 
-      if (!token) {
-        return next(new Error('Authentication error'));
+      // If token provided, authenticate user
+      if (token) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id).select('-password');
+
+        if (!user) {
+          return next(new Error('User not found'));
+        }
+
+        socket.userId = user._id.toString();
+        socket.username = user.username;
+        socket.isGuest = false;
+        // store username for lookups
+        userNames.set(socket.userId, socket.username);
+        return next();
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id).select('-password');
+      // If shareLink provided, validate and allow guest connection
+      if (shareLink) {
+        const document = await Document.findOne({ shareLink });
+        if (!document) {
+          return next(new Error('Invalid share link'));
+        }
+        if (document.shareLinkExpiry && document.shareLinkExpiry < Date.now()) {
+          return next(new Error('Share link expired'));
+        }
 
-      if (!user) {
-        return next(new Error('User not found'));
+        // Create a guest identity for this socket
+        const guestId = `guest_${Math.random().toString(36).slice(2,9)}`;
+        socket.userId = guestId;
+        // allow optional display name from handshake
+        const displayName = socket.handshake.auth.displayName || socket.handshake.headers['x-display-name'];
+        socket.username = displayName ? displayName : `Guest-${guestId.slice(6)}`;
+        socket.isGuest = true;
+        socket.guestForDocument = document._id.toString();
+        // store guest name for lookups
+        userNames.set(socket.userId, socket.username);
+        return next();
       }
 
-      socket.userId = user._id.toString();
-      socket.username = user.username;
-      next();
+      // No credential provided
+      return next(new Error('Authentication error'));
     } catch (error) {
       next(new Error('Authentication error'));
     }
@@ -56,9 +86,14 @@ module.exports = (io) => {
           return;
         }
 
-        const hasAccess =
-          document.owner.toString() === socket.userId ||
-          document.permissions.some(p => p.user.toString() === socket.userId);
+        // Determine access: authenticated users via permissions OR guests via matching share link
+        let hasAccess = false;
+        if (socket.isGuest) {
+          hasAccess = document._id.toString() === socket.guestForDocument;
+        } else {
+          hasAccess = document.owner.toString() === socket.userId ||
+            document.permissions.some(p => p.user.toString() === socket.userId);
+        }
 
         if (!hasAccess) {
           socket.emit('error', { message: 'Access denied' });
@@ -69,26 +104,23 @@ module.exports = (io) => {
         socket.join(documentId);
         socket.currentDocument = documentId;
 
-        // Track active users
+        // Track active users (store by userId)
         if (!activeUsers.has(documentId)) {
           activeUsers.set(documentId, new Set());
         }
         activeUsers.get(documentId).add(socket.userId);
 
-        // Notify others
+        // Notify others with username
         socket.to(documentId).emit('user-joined', {
           userId: socket.userId,
           username: socket.username,
           timestamp: new Date()
         });
 
-        // Send current users in document
+        // Send current users in document with resolved usernames
         const usersInDoc = Array.from(activeUsers.get(documentId));
         socket.emit('document-users', {
-          users: usersInDoc.map(userId => ({
-            userId,
-            username: socket.username // This would need to be fetched properly
-          }))
+          users: usersInDoc.map(userId => ({ userId, username: userNames.get(userId) }))
         });
 
         console.log(`${socket.username} joined document ${documentId}`);
@@ -180,7 +212,10 @@ module.exports = (io) => {
               p => p.user.toString() === socket.userId && ['owner', 'editor'].includes(p.role)
             );
 
-          if (canEdit) {
+          // Allow edits if user has permission or if this is a guest connected via share link for this document
+          const guestCanEdit = socket.isGuest && socket.guestForDocument && socket.guestForDocument === documentId;
+
+          if (canEdit || guestCanEdit) {
             document.content = content;
             document.lastSaved = new Date();
             document.version += 1;
@@ -210,6 +245,10 @@ module.exports = (io) => {
         userSockets.get(socket.userId).delete(socket.id);
         if (userSockets.get(socket.userId).size === 0) {
           userSockets.delete(socket.userId);
+          // clean up guest name entries for guests
+          if (typeof socket.userId === 'string' && socket.userId.startsWith('guest_')) {
+            userNames.delete(socket.userId);
+          }
         }
       }
 
