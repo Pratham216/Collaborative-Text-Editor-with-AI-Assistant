@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: collaborative-editor-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: collaborative-editor
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: collaborative-editor-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/collaborative-editor
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE: 7d
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge
+
