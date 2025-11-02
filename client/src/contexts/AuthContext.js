@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-  const response = await axiosInstance.get('/auth/me');
+  const response = await axiosInstance.get('/api/auth/me');
       const user = response.data.user;
       // Ensure both id and _id are available for compatibility
       const userWithId = { ...user, _id: user.id || user._id, id: user.id || user._id };
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-  const response = await axiosInstance.post('/auth/login', { email, password });
+  const response = await axiosInstance.post('/api/auth/login', { email, password });
       const { user, token } = response.data;
       // Ensure both id and _id are available for compatibility
       const userWithId = { ...user, _id: user.id || user._id, id: user.id || user._id };
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-  const response = await axiosInstance.post('/auth/register', {
+  const response = await axiosInstance.post('/api/auth/register', {
         username,
         email,
         password,
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-  await axiosInstance.post('/auth/logout');
+  await axiosInstance.post('/api/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
