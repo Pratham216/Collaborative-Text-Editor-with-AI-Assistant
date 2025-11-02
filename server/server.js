@@ -33,10 +33,25 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow non-browser requests (e.g., curl, server-to-server) when origin is undefined
     if (!origin) return callback(null, true);
+    
+    // Remove trailing slash for consistency
     const cleaned = origin.replace(/\/$/, '');
+    
+    // Check exact matches first
     if (allowedOrigins.indexOf(cleaned) !== -1) {
       return callback(null, true);
     }
+    
+    // Allow all Vercel preview URLs for this project
+    if (cleaned.match(/^https:\/\/collaborative-text-editor-with-ai.*\.vercel\.app$/)) {
+      return callback(null, true);
+    }
+    
+    // Allow localhost for development
+    if (cleaned.match(/^http:\/\/localhost:\d+$/)) {
+      return callback(null, true);
+    }
+    
     console.warn('CORS blocked for origin:', origin, 'allowedOrigins:', allowedOrigins);
     return callback(new Error('Not allowed by CORS'));
   },
