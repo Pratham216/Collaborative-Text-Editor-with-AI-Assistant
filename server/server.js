@@ -24,8 +24,22 @@ const io = socketIo(server, {
 });
 
 // Middleware
+// Support multiple client origins via CLIENT_URLS env var (comma-separated),
+// or a single CLIENT_URL. Trim trailing slashes to avoid mismatches.
+const rawClientUrls = process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:3000';
+const allowedOrigins = rawClientUrls.split(',').map(u => (u || '').trim().replace(/\/$/, ''));
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  origin: function (origin, callback) {
+    // Allow non-browser requests (e.g., curl, server-to-server) when origin is undefined
+    if (!origin) return callback(null, true);
+    const cleaned = origin.replace(/\/$/, '');
+    if (allowedOrigins.indexOf(cleaned) !== -1) {
+      return callback(null, true);
+    }
+    console.warn('CORS blocked for origin:', origin, 'allowedOrigins:', allowedOrigins);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 app.use(express.json());
