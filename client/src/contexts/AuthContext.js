@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       setUser(null);
       localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
+      delete axiosInstance.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userWithId);
       setToken(token);
       localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       toast.success('Login successful!');
       return { success: true };
     } catch (error) {
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userWithId);
       setToken(token);
       localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       toast.success('Registration successful!');
       return { success: true };
     } catch (error) {
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
+      delete axiosInstance.defaults.headers.common['Authorization'];
       toast.info('Logged out successfully');
     }
   };
