@@ -2,6 +2,8 @@
 
 A real-time collaborative text editor similar to Google Docs, built with React, Node.js, Socket.io, and Google Gemini AI. Multiple users can simultaneously edit documents, save their work, and receive AI-powered writing assistance.
 
+## Working Link : https://collaborative-text-editor-with-ai-a-opal.vercel.app/
+
 ## 🚀 Features
 
 ### Core Features
